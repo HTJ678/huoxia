@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>活下来 · 水资源枯竭</title>
+<style>
+  :root{
+    --bg:#0b0d0f; --panel:#15191c; --line:#232a2f; --ink:#e9e7e2;
+    --dim:#868f96; --blue:#5aa9d6; --red:#c8694f; --good:#7fae7a; --gold:#c9a24d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex;justify-content:center;
+  }
+  .wrap{width:100%;max-width:560px;padding:26px 22px 44px}
+
+  /* ---------- 菜单 ---------- */
+  .title{font-size:34px;font-weight:600;letter-spacing:.04em;margin:26px 0 4px}
+  .title span{color:var(--dim);font-weight:400}
+  .sub{color:var(--dim);font-size:13.5px;line-height:1.8;margin-bottom:26px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .card{
+    position:relative;border:1px solid var(--line);border-radius:13px;overflow:hidden;
+    aspect-ratio:1/1.06;cursor:pointer;background:var(--panel);
+    display:flex;align-items:flex-end;padding:13px;transition:transform .16s,border-color .16s;
+  }
+  .card:hover{transform:translateY(-2px);border-color:#37454f}
+  .card .art{position:absolute;inset:0;opacity:.85}
+  .card .name{position:relative;font-size:15px;font-weight:600;letter-spacing:.02em;text-shadow:0 1px 8px #000}
+  .card .tag{position:relative;font-size:11.5px;color:#cfd4d6;opacity:.8;margin-top:2px}
+  .card.off{pointer-events:none;filter:grayscale(1) brightness(.5)}
+  .card.off .name{color:#9aa2a8}
+  .foot{margin-top:22px;font-size:12.5px;color:#5f686e;line-height:1.9}
+
+  /* ---------- 游戏 ---------- */
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+  .day{font-size:14.5px;color:var(--dim);letter-spacing:.08em}
+  .weather{font-size:14.5px;color:var(--dim)}
+  .water{font-size:62px;line-height:1.05;font-weight:600;letter-spacing:-.02em;margin:6px 0 0}
+  .unit{font-size:17px;color:var(--dim);font-weight:400;margin-left:6px}
+  .bar{height:3px;background:var(--line);margin:13px 0 15px;border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--blue);transition:width .35s}
+  .stats{display:flex;flex-wrap:wrap;gap:7px;font-size:11.5px;color:var(--dim);margin-bottom:12px}
+  .stats span{background:#151a1e;border:1px solid #222a2f;border-radius:20px;padding:3px 9px;line-height:1.5}
+  .stats b{color:#d8dde0;font-weight:600;margin-left:3px}
+  .delta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px;min-height:0}
+  .delta span{font-size:12.5px;padding:3px 9px;border-radius:6px;background:#12181c;border:1px solid #232c31}
+  .delta .up{color:#79b47a;border-color:#2b4030;background:#111a12}
+  .delta .down{color:#d98b6e;border-color:#432a22;background:#1a1210}
+  .delta .item{color:#c9a24d;border-color:#3d3520;background:#191509}
+  .narr{font-size:15px;line-height:1.9;color:#ccd1d4;min-height:96px;margin-bottom:16px;white-space:pre-line}
+  .narr .hl{color:#fff}
+  .narr .warn{color:#e08a6f}
+
+  #opts.two{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  #opts.two button.opt{margin-bottom:0;padding:13px 12px;font-size:13.5px}
+  #opts.two button.opt small{font-size:11.5px}
+  #opts.two button.opt.wide{grid-column:1 / -1}
+  button.opt.warn{color:#c9a24d;border-color:#3a3220}
+
+  button.opt{
+    display:block;width:100%;text-align:left;margin-bottom:9px;padding:15px 16px;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:11px;font-size:15px;font-family:inherit;line-height:1.5;
+    cursor:pointer;transition:background .14s,border-color .14s;
+  }
+  button.opt:hover{background:#1b2227;border-color:#31404a}
+  button.opt:disabled{opacity:.3;cursor:default}
+  button.opt small{display:block;color:#7b858c;font-size:12.5px;margin-top:3px}
+  .ghost{background:none;border:none;color:#6d767c;font-size:13px;padding:12px 0;cursor:pointer;font-family:inherit}
+  .ghost:hover{color:#9aa2a8}
+  .log{margin-top:24px;border-top:1px solid var(--line);padding-top:13px}
+  .log p{margin:0 0 6px;font-size:12.5px;color:#6e777d;line-height:1.75}
+  .log p span{color:#8d969c}
+
+  /* ---------- 手机 / 弹层 ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(5,7,8,.82);display:flex;
+    align-items:center;justify-content:center;padding:24px;z-index:9;
+  }
+  .phone{
+    width:100%;max-width:330px;background:#12161a;border:1px solid #2a3238;
+    border-radius:20px;padding:18px 16px;box-shadow:0 24px 60px rgba(0,0,0,.6);
+  }
+  .phone .top{display:flex;justify-content:space-between;font-size:11.5px;color:#6f787e;margin-bottom:12px}
+  .msg{background:#1b2228;border-radius:11px;padding:10px 12px;margin-bottom:8px;font-size:13px;line-height:1.65;color:#c3cacd}
+  .msg .who{display:block;font-size:11px;color:#7d868c;margin-bottom:3px}
+  .msg.gov{border-left:2px solid var(--gold)}
+  .msg.rumor{border-left:2px solid #6a7f92}
+  .phone button{margin-top:10px;width:100%;padding:11px;border-radius:9px;border:1px solid #2d363c;background:#1a2126;color:#cfd4d6;font-family:inherit;font-size:13.5px;cursor:pointer}
+
+  /* ---------- 日记本 ---------- */
+  .diarybox{
+    width:100%;max-width:380px;max-height:78vh;background:#131719;border:1px solid #2a3238;
+    border-radius:16px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.65);
+  }
+  .diarybox .dh{display:flex;justify-content:space-between;align-items:center;padding:15px 17px 11px;border-bottom:1px solid #212a2f}
+  .diarybox .dh b{font-size:14.5px;font-weight:600;letter-spacing:.04em}
+  .diarybox .dh span{font-size:11.5px;color:#6b747a}
+  .dbody{overflow-y:auto;padding:8px 17px 6px;flex:1;-webkit-overflow-scrolling:touch}
+  .dday{margin:11px 0 5px;font-size:12px;color:#6f797f;letter-spacing:.06em}
+  .ditem{font-size:13.5px;line-height:1.75;color:#c2c9cc;padding:4px 0 4px 11px;border-left:1px solid #262f34;margin-left:2px}
+  .dempty{color:#6b747a;font-size:13px;padding:26px 0;text-align:center}
+  .dphase{font-size:10.5px;color:#5d666c;letter-spacing:.22em;margin:9px 0 3px 2px}
+  .ditem.dim{color:#5d666c}
+  .diarybox .df{padding:11px 17px 15px;border-top:1px solid #212a2f}
+  .diarybox .df button{width:100%;padding:11px;border-radius:9px;border:1px solid #2d363c;background:#1a2126;color:#cfd4d6;font-family:inherit;font-size:13.5px;cursor:pointer}
+
+  /* ---------- 结局 ---------- */
+  @keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+  body.shake .wrap{animation:shk .42s ease}
+  .end{text-align:center;padding-top:52px}
+  .achnew{display:inline-block;font-size:12.5px;color:#c9a24d;border:1px solid #3d3520;background:#191509;padding:4px 11px;border-radius:20px;margin-bottom:16px}
+  .achnew.dim{color:#6d767c;border-color:#242c31;background:#12161a}
+  .end .kicker{font-size:12px;color:#6d767c;letter-spacing:.24em;margin-bottom:12px}
+  .end h1{font-size:27px;font-weight:600;margin:0 0 18px;letter-spacing:.02em}
+  .end p{color:#aab2b7;font-size:15px;line-height:1.95;margin:0 0 30px;white-space:pre-line}
+  .end button{padding:12px 26px;border-radius:10px;border:1px solid #2d363c;background:#171d22;color:#dfe3e5;font-family:inherit;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ══════════════ 数值（改这里就能调平衡） ══════════════ */
+const CFG = {
+  DAYS: 9999,   // 不再有硬性天数；结局由事件触发
+
+  START_WATER: 6,
+  DRINK: 1,
+  START_STAMINA: 3,
+  MAX_STAMINA: 3,
+  PAN_RAIN: 6,
+  PAN_CLOUDY: 2,
+  WELL_EARLY: 4,      // day <= 6
+  WELL_MID: 1,        // day 7..12
+  WELL_DRY: 13,       // 之后井干
+  STORE_HEAVY_DAYS: 2,// 前两天超市还有整箱水
+  STORE_WATER: 6,
+  PHONE_DRAIN: 2,     // 每天待机耗电
+  PHONE_READ: 8,      // 看一次额外耗电
+  PHONE_CHARGE: 30,   // 充电一次 +30
+  CHARGE_UNTIL: 10,   // 之后停电，充不了
+  ROBBER_DAYS: [8, 15, 22],
+  NEIGHBOR_DAYS: [5, 9, 13, 21],
+};
+
+/* ══════════════ 状态 ══════════════ */
+let S;
+function init(){
+  S = {
+    day: 1, water: CFG.START_WATER, stamina: CFG.START_STAMINA,
+    battery: 100, pans: 1,
+    lock: 0, knife: 0, trust: 0, lent: 0, repaid: false,
+    weather: null, log: [], dryStreak: 0, wound: 0,
+    readGov: false, heardRumor: false, canLeaveWithNeighbor: false,
+    toldTruck: false, truckDay: 0, station: 0, bribe: 0, threatened: 0,
+    newsSon: 0, auntDead: false, auntDeathDay: 0, auntGiftDay: 0,
+    maxStamina: CFG.MAX_STAMINA, robbed: 0, robberAngry: false, pendingChoice: null,
+    seen: {}, seenEv: {}, ended: null, lastNarr: '', nightMsg: null, deltas: [],
+  };
+  rollWeather();
+  S.lastNarr = '水是上周三停的。\n第一天大家还去楼下接消防水，第二天就没有了。\n现在整栋楼只剩下空调外机在滴水，一滴，一滴。';
+}
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+function rollWeather(){ const r = Math.random(); S.weather = r<.3?'rain':r<.7?'cloudy':'sunny'; }
+const wName = () => S.weather==='rain'?'雨':S.weather==='cloudy'?'阴':'晴';
+
+/* ══════════════ 每日结算 ══════════════ */
+function buzz(pattern){
+  try{ if(navigator.vibrate) navigator.vibrate(pattern); }catch(e){}
+  try{
+    document.body.classList.add('shake');
+    setTimeout(()=>document.body.classList.remove('shake'), 420);
+  }catch(e){}
+}
+
+function endOfDay(){
+  const logStart = S.log.length;
+  S.water -= CFG.DRINK;
+  S.battery = Math.max(0, S.battery - CFG.PHONE_DRAIN);
+  if(S.battery === 0 && !S.seen.nophone){
+    S.seen.nophone = true;
+    S.log.push(['第'+S.day+'天','手机彻底黑了。没有电，也没有信号']);
+  }
+  if(S.water < 0){ S.water = 0; S.dryStreak++; } else S.dryStreak = 0;
+
+  // 站长：每天有一点配额
+  if(S.station >= 1){ S.water += 1; }
+
+  if(S.dryStreak >= 2){ S.ended='thirst'; return; }
+  // 没有天数上限：救援/撤离都是"等到"的，不是"数到"的
+  if(S.day >= 25 && S.readGov && !S.station && Math.random() < .09){ S.ended = 'gov'; return; }
+  if(S.day >= 28 && S.station >= 1 && Math.random() < .08){ S.ended = 'heli'; return; }
+
+  // 夜里的强盗
+  if(CFG.ROBBER_DAYS.includes(S.day)){ robber(); if(S.ended) return; }
+  if(S.threatened > 0 && Math.random() < .15){ robber(); if(S.ended) return; }
+  // 缺水特有的夜里的事
+  if(Math.random() < .3) worldEvent();
+  // 阿姨说车（信任 ≥2 才会告诉你）
+  if(!S.toldTruck && S.trust >= 2 && S.day >= 15){
+    S.toldTruck = true; S.truckDay = S.day; S.canLeaveWithNeighbor = true;
+    S.log.push(['第'+S.day+'夜','阿姨说：她认识的一个姐搞到了车']);
+    S.nightMsg = '阿姨在楼道里拦住你，声音压得很低。\n她说她认识一个姐，搞到了一辆车，后厢焊了铁皮，今晚就走。\n「我不去，」她说，「我走不动了。你要是想走，我跟她说一声。」';
+  }
+  // 站长：夜里的麻烦
+  if(S.station >= 1 && Math.random() < .25) stationEvent();
+
+  // 夜里什么也没发生 → 记一笔"无"，让日记每天都有白天+夜晚
+  if(!S.log.slice(logStart).some(e=>String(e[0]).indexOf('夜') >= 0)){
+    S.log.push(['第'+S.day+'夜','无事发生']);
+  }
+
+  S.day++;
+  rollWeather();
+
+  auntStory();
+  // 车只等三天
+  if(S.toldTruck && S.day - S.truckDay > 3){
+    S.canLeaveWithNeighbor = false;
+    if(!S.seen.truckGone){
+      S.seen.truckGone = true;
+      S.log.push(['第'+S.day+'天','那辆车走了']);
+      S.nightMsg = '阿姨说，车昨天晚上就走了。\n「我说了，我不走。」她把手在围裙上擦了擦，\n「你要是想去，得自己想办法了。」';
+    }
+  }
+}
+
+function worldEvent(){
+  const d = S.day;
+  const pool = [];
+  if(d >= 4 && !S.seenEv.smell) pool.push({
+    key:'smell',
+    txt:'楼道里有味道了。\n冲不了厕所，有人在楼梯口放了个桶，谁也不愿意先动它。',
+    log:'楼道开始有味道：冲不了厕所'
+  });
+  if(d >= 8 && !S.seenEv.fire) pool.push({
+    key:'fire',
+    txt:'凌晨三点，三楼窗户里冒出火光。\n消防车来了，接上消防栓，没有水。\n他们站在楼下，看着那两层烧完。',
+    log:'三楼起火，消防栓没水，烧了两层'
+  });
+  if(d >= 11 && !S.seenEv.fight) pool.push({
+    key:'fight',
+    txt:'配水点有人打起来了，为一个塑料桶。\n两个男人揪着领子，旁边的人在排队，没人上去拉。',
+    log:'配水点发生争抢'
+  });
+  if(d >= 13 && !S.seenEv.child) pool.push({
+    key:'child',
+    txt:'楼上的小孩一直在哭。\n哭声断断续续的，后来变成咳嗽，再后来听不见了。',
+    log:'楼上的孩子病了'
+  });
+  if(d >= 15 && !S.seenEv.truck) pool.push({
+    key:'truck',
+    txt:'楼下停过一辆车。不是普通的车——车窗焊了铁皮，前面绑着钢筋，车顶站着一个人。\n他们没上楼，只把楼下一排自行车全搬走了。\n走的时候有人吹了一声口哨，很短的，像在叫狗。',
+    log:'楼下停过一辆焊满铁皮的车'
+  });
+  if(!pool.length) return;
+  const e = rnd(pool);
+  buzz([60, 120, 60]);
+  S.seenEv[e.key] = true;
+  S.log.push(['第'+d+'夜', e.log]);
+  S.nightMsg = e.txt;
+}
+
+function pushChoice(c){
+  S.pendingChoice = c;
+  S.nightMsg = c.text;
+}
+
+function stationEvent(){
+  // 受贿永远是"收 / 不收"的选择；收了有 50% 被人看见
+  pushChoice({
+    text: '夜里收队的时候，一个男人把三瓶水塞进你手里。\n「我儿子排在后面，」他说，「明天让他先接。」\n\n路灯底下还有别人在排队，你看不清谁在看这边。',
+    label: '收下（+3 瓶）',
+    second: { label: '推回去', act(){ S.log.push(['第'+S.day+'夜','你把钱推回去了']); } },
+    act(){
+      S.water += 3; S.bribe++;
+      if(Math.random() < .5){
+        S.threatened++;
+        S.trust = Math.max(0, S.trust - 1);
+        S.log.push(['第'+S.day+'夜','你收了水，被人看见了（信任 -1）']);
+        S.nightMsg = '你把三瓶水放进包里的时候，抬头看见两个人站在路灯下面，正在看你。\n他们没说话，也没走开。\n第二天早上，你门口多了一块砖——不是扔的，是立着的。';
+      } else {
+        S.log.push(['第'+S.day+'夜','你收了 3 瓶水，没人看见']);
+        S.nightMsg = '你把三瓶水放进包里，回头看了一眼。\n路灯下面没有人。\n你上楼的时候脚步很轻。';
+      }
+    }
+  });
+}
+
+
+function auntStory(){
+  // ① 听说"外面的人带回来消息"——只有当上站长才打听得动
+  if(S.newsSon === 0 && S.station >= 1 && S.toldTruck && S.day - S.truckDay >= 1 && S.day >= 16){
+    S.newsSon = 1;
+    pushChoice({
+      text: '配水点来了个从西边回来的人，说要打听路。\n他坐在水罐上喝了一瓶，说西边那条线断了，车在半路被截了。\n「车上有几个人，」他说，「有一个是从这栋楼走的，阿姨的儿子。」\n他没说下去。\n\n阿姨每天早上都会在楼道里等你。',
+      label: '告诉阿姨',
+      second: { label: '不说', act(){ S.newsSon = 3; S.log.push(['第'+S.day+'夜','你没把消息说出去']); } },
+      act(){ S.newsSon = 2; S.auntDeathDay = S.day + 3 + Math.floor(Math.random()*3);
+        S.log.push(['第'+S.day+'夜','你把消息告诉了阿姨']); }
+    });
+    return;
+  }
+
+  // ② 告诉了：几天后阿姨自尽，把 8 瓶水留给你
+  if(S.newsSon === 2 && !S.auntDead && S.day >= S.auntDeathDay){
+    S.auntDead = true;
+    S.water += 8;
+    buzz([80, 50, 80]);
+    S.log.push(['第'+S.day+'夜','阿姨走了，门口放着 8 瓶水']);
+    S.nightMsg = '早上你去敲门，门没锁。\n她坐在椅子上，手放在膝盖上，像在等谁回家。\n门口的鞋柜上放着 8 瓶水，摆得很整齐，瓶口朝着门。\n下面压着一张纸，是记电话号码的那种便签纸。\n上面写着：谢谢你告诉我。';
+    return;
+  }
+
+  // ③ 没说：阿姨一直活着，隔几天给你一点
+  if(S.newsSon === 3 && !S.auntDead && S.day >= S.auntGiftDay + 5){
+    S.auntGiftDay = S.day;
+    const r = Math.random();
+    if(r < .2){ S.lock++; S.log.push(['第'+S.day+'天','阿姨塞给你一把锁']); }
+    else if(r < .8){ const g = 1 + Math.floor(Math.random()*2); S.water += g; S.log.push(['第'+S.day+'天','阿姨给了 '+g+' 瓶水']); }
+  }
+}
+
+function robber(){
+  S.robbed++;
+  buzz([120, 60, 200]);
+
+  // 1) 锁优先：门先顶住，人不用动
+  if(S.lock > 0){
+    S.lock--;
+    S.log.push(['第'+S.day+'夜','门被撞了几下，锁顶住了。人走了']);
+    S.nightMsg = '凌晨三点，门被撞了三下。\n你没有起来。\n金属摩擦的声音停了很久，然后脚步慢慢远了。\n锁还扣着——但你数了数，只剩最后一把。';
+    return;
+  }
+
+  // 2) 算账：收过两次以上的水，且已经来过四次
+  if(S.bribe >= 2 && S.robbed >= 4){
+    S.ended = 'killed';
+    S.log.push(['第'+S.day+'夜','他们这次不是来拿水的']);
+    S.nightMsg = '门没锁。他们进来的时候你已经坐起来了。\n「站长，」第一个说，「上次那三瓶，还有上上次。」\n后面的事，你没看见。';
+    return;
+  }
+
+  // 3) 有刀、没被威胁：逼退
+  if(S.knife > 0 && S.threatened === 0){
+    S.stamina = Math.max(0, S.stamina-2); S.wound++;
+    S.log.push(['第'+S.day+'夜','强盗破门，你拿刀把人逼退，自己也挂了彩']);
+    S.nightMsg = '门开了。你把刀举起来的时候，手在抖。\n对方看了一眼，退了半步，然后走了。\n你坐到天亮，才发现手背在流血。';
+    return;
+  }
+
+  // 4) 有刀、被威胁过：争执一次，刀被折断
+  if(S.knife > 0 && S.threatened > 0 && !S.robberAngry){
+    S.robberAngry = true;
+    S.knife = 0;
+    S.maxStamina = Math.max(1, S.maxStamina - 1);
+    S.stamina = Math.min(S.stamina, S.maxStamina);
+    S.log.push(['第'+S.day+'夜','争执：刀折断，体力上限 -1']);
+    S.nightMsg = '这次他们没有退。\n你把刀举起来，对方直接抓住了你的手腕，往门框上磕。\n刀刃断在里面。\n水一瓶没少——他们只是要让你记住。\n从那天起，你上两层楼都要歇一次。';
+    return;
+  }
+
+  // 5) 什么都没有：抢水，但不会当场要你的命
+  const loss = Math.max(1, Math.round(S.water*0.4));
+  S.water = Math.max(0, S.water - loss);
+  S.stamina = Math.max(0, S.stamina-1);
+  S.log.push(['第'+S.day+'夜','强盗破门，抢走 '+loss+' 瓶水']);
+  S.nightMsg = '门被踹开的时候，你还在半睡。\n两个人进来，没说话，把柜子上的瓶子往袋子里塞。\n你缩在角落里，什么也没做。\n他们走后，地上只剩两个空的。';
+}
+
+/* ══════════════ 叙述 ══════════════ */
+function narrate(){
+  if(S.nightMsg){ const m = S.nightMsg; S.nightMsg = null; return m; }
+  if(S.lastNarr){ const m = S.lastNarr; S.lastNarr = ''; return m; }
+  if(S.day >= 9 && S.day <= 11 && !S.seen.hollow){
+    S.seen.hollow = true;
+    return '一个人待着的时候，时间过得特别慢。\n你把瓶子擦了又擦，把地上的水痕看了很久。\n楼下的声音越来越少——不是安静下来，是没人了。\n你开始想一件以前没想过的事：是不是该出去看看。';
+  }
+  const w = S.water;
+  if(S.dryStreak>0) return '瓶子空了。今天一整天，嘴里只有铁锈味。\n<span class="warn">再一天，就撑不住了。</span>';
+  if(S.wound>0 && S.stamina===0) return '手上的伤口发烫。你连站起来都觉得晕。';
+  if(w<=2) return '你把瓶子倒过来，等最后几滴落进杯子里。\n楼上的孩子在哭，哭声隔着一层楼板，很闷。';
+  if(w<=5) return '瓶子在柜子上排成一排，你数了两遍，还是那几瓶。';
+  if(w>=25) return '柜子底下塞满了瓶子。可你算得出来——它们撑不到井干的那天。';
+  return '楼下没有声音。水管早就停了，邻居家的窗户关着，只有空调外机在滴水。';
+}
+
+/* ══════════════ 选项 ══════════════ */
+function options(){
+  const list = [];
+  const rainGain = S.weather==='rain' ? CFG.PAN_RAIN*S.pans : S.weather==='cloudy' ? CFG.PAN_CLOUDY*S.pans : 0;
+
+  list.push({
+    label:'把盆摆到窗台外',
+    sub:'看天吃饭',
+    act(){
+      S.water += rainGain;
+      S.stamina = Math.min(S.maxStamina, S.stamina+1);
+      S.log.push(['第'+S.day+'天', rainGain>0 ? '接水 +'+rainGain : '盆摆了一天，什么也没接住']);
+      S.lastNarr = rainGain>0
+        ? '水从盆沿溢出来一点，顺着外墙往下淌。\n你用毛巾把盆底擦干，倒进瓶子里，一瓶一瓶排好。\n在窗台上守了一天，倒不累。'
+        : '盆摆了一整天。\n天一直是亮的，没有雨，连云都没有。\n你看着天，什么也没做。';
+    }
+  });
+
+  const wellGain = S.day<=6 ? CFG.WELL_EARLY : S.day<=12 ? CFG.WELL_MID : 0;
+  list.push({
+    label:'下楼打井水',
+    sub:'力气活',
+    disabled: S.stamina<=0,
+    act(){
+      S.stamina--;
+      if(wellGain>0){
+        S.water += wellGain;
+        S.log.push(['第'+S.day+'天','井水 +'+wellGain]);
+        S.lastNarr = '井绳磨得手心发烫。\n摇上来的时候，桶底有点浑，你没有滤，直接灌进瓶子。';
+      } else {
+        S.log.push(['第'+S.day+'天','井干了']);
+        S.lastNarr = '桶下去，声音是闷的。\n摇上来，桶底只有一层泥。井干了。';
+      }
+    }
+  });
+
+  list.push({
+    label:'去超市',
+    sub:'往返要大半天',
+    disabled: S.stamina<2,
+    act(){
+      S.stamina -= 2;
+      let msg = '货架早被搬空了，只剩倒下来的购物车。';
+      const roll = Math.random();
+      if(S.day <= CFG.STORE_HEAVY_DAYS){ S.water += CFG.STORE_WATER; msg='仓库角落还有半箱水，你抱回来 '+CFG.STORE_WATER+' 瓶。'; }
+      else if(roll < .28){ const g = 2+Math.floor(Math.random()*2); S.water += g; msg='后门的小卖部没关严，你摸到 '+g+' 瓶水。'; }
+      else if(roll < .48){ S.lock++; msg='五金货架上有一把挂锁。你把锁揣进兜里，回来就装上了门。'; }
+      else if(roll < .62){ S.knife++; msg='厨具区有一把水果刀，刀刃很短。你把它塞进腰带里。'; }
+      S.log.push(['第'+S.day+'天','超市：'+msg]);
+      S.lastNarr = msg;
+    }
+  });
+
+  // 手机
+  if(S.battery > 0){
+    const canCharge = S.day <= CFG.CHARGE_UNTIL && S.battery < 90;
+    list.push({
+      label:'看手机',
+      sub: S.day <= CFG.CHARGE_UNTIL ? '信号还在' : '快没电了',
+      act(){
+        S.battery = Math.max(0, S.battery - CFG.PHONE_READ);
+        S.stamina = Math.min(S.maxStamina, S.stamina+1);
+        const msgs = phoneMessages();
+        if(msgs.length){
+          openPhone(msgs, ()=>{
+            S.log.push(['第'+S.day+'天','看了手机']);
+            if(msgs.some(m=>m.k==='gov')) S.readGov = true;
+            if(msgs.some(m=>m.k==='rumor')) S.heardRumor = true;
+          });
+        } else {
+          S.lastNarr = '屏幕亮了一下，什么也没有。\n群里的最后一条消息停在三天前：「还有水吗」。';
+          S.log.push(['第'+S.day+'天','看手机，没有新消息']);
+        }
+      }
+    });
+  } else {
+    list.push({
+      label:'给手机充电',
+      sub:'早就停电了',
+      disabled: S.day > CFG.CHARGE_UNTIL,
+      act(){ S.battery = Math.min(100, S.battery+CFG.PHONE_CHARGE); S.log.push(['第'+S.day+'天','给手机充了电']); S.lastNarr='插上充电器，屏幕亮起来，像屋子里唯一还活着的东西。'; }
+    });
+  }
+
+  // 邻居 / 在家
+  if(CFG.NEIGHBOR_DAYS.includes(S.day) && !S.seen['n'+S.day]){
+    list.push({
+      label:'开门——阿姨在敲门',
+      sub:'她说想借点水',
+      act(){
+        S.seen['n'+S.day] = true;
+        if(S.water>=2){ S.water-=2; S.lent++; S.trust++; S.log.push(['第'+S.day+'天','借给阿姨 2 瓶水']); S.lastNarr='阿姨连说了三声谢谢，说儿子在外地，她下不去楼。\n你把两个瓶子递过去，她抱着，像抱着什么贵重的东西。'; }
+        else { S.log.push(['第'+S.day+'天','没开门']); S.lastNarr='你没开门。\n脚步声在门口停了一会儿，然后慢慢上楼去了。'; }
+      }
+    });
+  } else {
+    list.push({
+      label:'在家躺着',
+      sub:'省点力气',
+      act(){ S.stamina = Math.min(S.maxStamina, S.stamina+2); S.log.push(['第'+S.day+'天','在家躺了一天']); S.lastNarr='窗帘拉了一半。\n你躺着，听着楼道的动静，什么也没做。'; }
+    });
+  }
+
+  // 充电（电还没停、电量低时才出现）
+  if(S.day <= CFG.CHARGE_UNTIL && S.battery > 0 && S.battery < 45){
+    list.push({
+      label:'给手机充电',
+      sub:'电还没停',
+      act(){ S.battery = Math.min(100, S.battery+CFG.PHONE_CHARGE); S.log.push(['第'+S.day+'天','充了电']); S.lastNarr='你守着充电器，看着百分比一点点往上爬。\n电来了才有消息，有消息才有方向。'; }
+    });
+  }
+
+  // 去配水点当站长（看过政府通告、第 10 天后）
+  if(S.readGov && S.day >= 10 && S.station === 0){
+    list.push({
+      label:'去配水点帮忙',
+      sub:'排队的人越来越多，没人管',
+      act(){
+        S.station = 1;
+        S.log.push(['第'+S.day+'天','你在配水点站到了阀门旁边']);
+        S.lastNarr = '你本来只是去排队。\n队伍从操场排到马路上，插队的人越来越多，有人开始喊。\n你站出来说了两句话，没人听。\n后来你走过去，把阀门压住了。\n所有人安静下来。\n那天之后，你就站在阀门旁边了。';
+      }
+    });
+  }
+
+  // 主动离开（第 14 天后；当了站长之后不再出现，除非已经被夺过刀）
+  if(S.day >= 14 && (S.station === 0)){
+    list.push({
+      label:'收拾东西，自己出去',
+      sub:'苟延残喘，不如走',
+      cls:'warn',
+      act(){ S.ended = 'walk'; }
+    });
+  }
+  if(S.station >= 1 && S.robbed >= 2){
+    list.push({
+      label:'算了，还是走吧',
+      sub:'这一次真的走',
+      cls:'warn',
+      act(){ S.ended = 'roaddeath'; }
+    });
+  }
+  // 跟车队走（第 20 天后、邻居信任够）
+  if(S.canLeaveWithNeighbor){
+    list.push({
+      label:'跟阿姨去看那辆车',
+      sub:'往西，走不走',
+      cls:'warn wide',
+      act(){ S.ended = 'boat'; }
+    });
+  }
+  return list;
+}
+
+/* ══════════════ 手机消息 ══════════════ */
+function phoneMessages(){
+  const out = [];
+  const d = S.day;
+  if(d>=5 && !S.seen.gov5){ S.seen.gov5=true;
+    out.push({k:'gov', who:'社区通知', text:'全体居民：市政供水管网抢修中。楼下小学操场设临时配水点，每户每日限领两瓶，请带好容器，按楼栋分批前往。'}); }
+  if(d>=9 && !S.seen.gov9){ S.seen.gov9=true;
+    out.push({k:'gov', who:'社区通知', text:'电厂冷却水不足，全市分片停电。电梯已停运，请勿在夜间使用明火。消防栓已无压，注意防火。'}); }
+  if(d>=12 && !S.seen.rumor){ S.seen.rumor=true;
+    out.push({k:'gov', who:'市政应急 · 通告', text:'救援运力有限，将优先护送参与供水调度、秩序维护人员及有突出贡献者。请相关人员在配水点登记，凭证件等候安排。'}); }
+  if(d>=17 && !S.seen.gov17){ S.seen.gov17=true;
+    out.push({k:'gov', who:'社区通知', text:'救援车辆已进入本区，配水点延长至晚八点。请携带身份证件与容器，按楼栋分批前往，不要携带过多物品。'}); }
+  if(!out.length && d>=6){
+    out.push({k:'', who:'业主群', text:'有人问：谁还有多余的水，小孩发烧了。\n没有人回。'});
+  }
+  return out;
+}
+
+function openDiary(){
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+
+  // 按天归组：白天 / 夜晚
+  const days = {};
+  S.log.forEach(e=>{
+    const label = String(e[0]);
+    const m = label.match(/第(\d+)(天|夜)/);
+    if(!m) return;
+    const d = parseInt(m[1], 10);
+    days[d] = days[d] || { day: [], night: [] };
+    (m[2] === '夜' ? days[d].night : days[d].day).push(e[1]);
+  });
+
+  const nums = Object.keys(days).map(Number).sort((a,b)=>a-b);
+  const body = nums.length ? nums.map(n=>{
+    const g = days[n];
+    const dayLines = g.day.length
+      ? g.day.map(t=>'<div class="ditem">'+t+'</div>').join('')
+      : '<div class="ditem dim">——</div>';
+    const nightLines = g.night.length
+      ? g.night.map(t=>'<div class="ditem">'+t+'</div>').join('')
+      : '<div class="ditem dim">无事发生</div>';
+    return '<div class="dday">第 '+n+' 天</div>'
+      + '<div class="dphase">白天</div>' + dayLines
+      + '<div class="dphase">夜晚</div>' + nightLines;
+  }).join('') : '<div class="dempty">还什么都没发生。</div>';
+
+  ov.innerHTML = '<div class="diarybox">'
+    + '<div class="dh"><b>日记</b><span>'+nums.length+' 天</span></div>'
+    + '<div class="dbody" id="dbody">'+body+'</div>'
+    + '<div class="df"><button id="dclose">合上</button></div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#dclose').onclick = ()=> ov.remove();
+  const b = ov.querySelector('#dbody');
+  b.scrollTop = b.scrollHeight;
+}
+
+function openPhone(msgs, done){
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.innerHTML = `<div class="phone">
+    <div class="top"><span>${wName()==='雨'?'信号 1 格':'信号 2 格'}</span><span>电量 ${S.battery}%</span></div>
+    ${msgs.map(m=>`<div class="msg ${m.k}"><span class="who">${m.who}</span>${m.text}</div>`).join('')}
+    <button id="close">放下手机</button>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#close').onclick = ()=>{ ov.remove(); done && done(); render(); };
+}
+
+function buildDeltas(b){
+  const out = [];
+  const dw = S.water - b.w;
+  if(dw > 0) out.push({k:'up', t:'水 +'+dw});
+  else if(dw < 0) out.push({k:'down', t:'水 '+dw});
+  const ds = S.stamina - b.st;
+  if(ds > 0) out.push({k:'up', t:'体力 +'+ds});
+  else if(ds < 0) out.push({k:'down', t:'体力 '+ds});
+  if(S.battery - b.ba <= -CFG.PHONE_READ) out.push({k:'down', t:'电 '+ (S.battery-b.ba) +'%'});
+  if(S.lock > b.lo) out.push({k:'item', t:'拿到一把锁'});
+  if(S.knife > b.kn) out.push({k:'item', t:'拿到一把刀'});
+  if(S.trust > b.tr) out.push({k:'up', t:'邻居信任 +'+(S.trust-b.tr)});
+  if(S.trust < b.tr) out.push({k:'down', t:'邻居信任 '+(S.trust-b.tr)});
+  if(S.ended) out.length = 0;
+  return out;
+}
+
+/* ══════════════ 程序化音乐（无外部音频文件） ══════════════ */
+const M = {
+  ctx:null, master:null, mode:null, timer:null, padNodes:[],
+  init(){
+    if(this.ctx) return true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return false;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = 0;
+    this.master.connect(this.ctx.destination);
+    return true;
+  },
+  resume(){ if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+  clear(){
+    if(this.timer){ clearInterval(this.timer); this.timer = null; }
+    if(this.padTimer){ clearTimeout(this.padTimer); this.padTimer = null; }
+    const now = this.ctx ? this.ctx.currentTime : 0;
+    this.padNodes.forEach(n=>{ try{ n.gain.cancelScheduledValues(now); n.gain.setTargetAtTime(0, now, .3); }catch(e){} });
+    setTimeout(()=>{ this.padNodes.forEach(n=>{ try{ n.osc.stop(); }catch(e){} }); this.padNodes = []; }, 1200);
+  },
+  tone(freq, dur, type, vol, when){
+    const c = this.ctx; if(!c) return;
+    const t = when || c.currentTime;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + .02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + .05);
+  },
+  /* 菜单：轻、亮、慢 */
+  menu(){
+    if(!this.init()) return;
+    this.resume(); this.clear(); this.mode = 'menu';
+    const c = this.ctx;
+    this.master.gain.cancelScheduledValues(c.currentTime);
+    this.master.gain.setTargetAtTime(0.16, c.currentTime, 1.2);
+
+    // 和弦层：Cmaj7 → Dm7 → Em7 逐级上行，各占 3 小节；最后一小节落回 Cmaj7
+    const chords = [
+      [261.63, 329.63, 392.00, 493.88],   // Cmaj7
+      [293.66, 349.23, 440.00, 523.25],   // Dm7
+      [329.63, 392.00, 493.88, 587.33]    // Em7
+    ];
+    const BAR = 2.2;
+    let curPad = [], ci = 0, phase = 'rise';
+    const setChord = (freqs, dur)=>{
+      const now = c.currentTime;
+      curPad.forEach(n=>{
+        try{
+          n.gain.gain.cancelScheduledValues(now);
+          n.gain.gain.setTargetAtTime(0, now, .5);
+          n.osc.stop(now + dur + 1.6);
+        }catch(e){}
+      });
+      const next = [];
+      freqs.forEach((f,i)=>{
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = 'sine'; o.frequency.value = f; o.detune.value = (i%2? 3 : -3);
+        g.gain.value = 0;
+        g.gain.setTargetAtTime(0.032, now + .35, 1.1);
+        o.connect(g); g.connect(this.master); o.start();
+        next.push({osc:o, gain:g});
+      });
+      curPad = next;
+      this.padNodes = this.padNodes.concat(next);
+    };
+    const step = ()=>{
+      if(this.mode !== 'menu') return;
+      if(phase === 'rise'){
+        setChord(chords[ci], BAR*3);
+        ci++;
+        if(ci >= chords.length){ phase = 'fall'; }
+        this.padTimer = setTimeout(step, BAR*3*1000);
+      } else {
+        setChord(chords[0], BAR);   // 一小节内落回第一个
+        phase = 'rise'; ci = 1;
+        this.padTimer = setTimeout(step, BAR*1000);
+      }
+    };
+    this.padTimer = setTimeout(step, 7800);
+    // 琶音
+    const arp = [523.25, 659.25, 783.99, 987.77, 783.99, 659.25];
+    let i = 0;
+    this.timer = setInterval(()=>{
+      this.tone(arp[i % arp.length], 1.6, 'triangle', 0.05);
+      i++;
+    }, 780);
+  },
+  /* 水资源枯竭：迷幻、低频、拖 */
+  game(){
+    if(!this.init()) return;
+    this.resume(); this.clear(); this.mode = 'game';
+    const c = this.ctx;
+    this.master.gain.cancelScheduledValues(c.currentTime);
+    this.master.gain.setTargetAtTime(0.15, c.currentTime, 1.5);
+
+    // 低频 drone（两支轻微失谐）
+    const filter = c.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 320; filter.Q.value = 6;
+    filter.connect(this.master);
+    [55, 55.4, 82.41].forEach((f,i)=>{
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = 'sawtooth'; o.frequency.value = f;
+      g.gain.value = i === 2 ? 0.02 : 0.03;
+      o.connect(g); g.connect(filter); o.start();
+      this.padNodes.push({osc:o, gain:g});
+    });
+    // 滤波缓慢扫动
+    const lfo = c.createOscillator(), lg = c.createGain();
+    lfo.frequency.value = 0.045; lg.gain.value = 210;
+    lfo.connect(lg); lg.connect(filter.frequency); lfo.start();
+    this.padNodes.push({osc:lfo, gain:lg});
+
+    // 延迟空间
+    const delay = c.createDelay(1.2), fb = c.createGain(), wet = c.createGain();
+    delay.delayTime.value = .52; fb.gain.value = .45; wet.gain.value = .35;
+    delay.connect(fb); fb.connect(delay); delay.connect(wet); wet.connect(this.master);
+    this.delayIn = delay;
+
+    // 单音旋律动机（慢，六音一循环，空一格留白）
+    const motif = [220, 261.63, 329.63, 392.00, 349.23, 261.63, 0];
+    let mi = 0;
+    this.timer = setInterval(()=>{
+      const f = motif[mi % motif.length];
+      mi++;
+      if(f) this.tone(f, 2.6, 'sine', 0.03);
+      if(mi % 14 === 0) this.tone(110, 4.5, 'triangle', 0.018);
+    }, 980);
+  },
+  off(){
+    if(!this.ctx) return;
+    this.clear();
+    this.master.gain.setTargetAtTime(0, this.ctx.currentTime, .4);
+    this.mode = null;
+  }
+};
+
+function renderChoice(){
+  const c = S.pendingChoice;
+  app.innerHTML = `
+    <div class="end" style="padding-top:38px">
+      <div class="kicker">第 ${S.day} 夜</div>
+      <p style="text-align:left;max-width:420px;margin:0 auto 26px">${c.text.replace(/\n/g,'<br>')}</p>
+      <div style="max-width:380px;margin:0 auto">
+        <button class="opt" id="ca1">${c.label}</button>
+        ${c.second ? '<button class="opt" id="ca2">'+c.second.label+'</button>' : ''}
+      </div>
+    </div>`;
+  document.getElementById('ca1').onclick = ()=>{
+    const cc = S.pendingChoice; S.pendingChoice = null; S.nightMsg = null;
+    cc.act(); render();
+  };
+  const b2 = document.getElementById('ca2');
+  if(b2) b2.onclick = ()=>{
+    const cc = S.pendingChoice; S.pendingChoice = null; S.nightMsg = null;
+    if(cc.second && cc.second.act) cc.second.act();
+    render();
+  };
+}
+
+/* ══════════════ 渲染 ══════════════ */
+const app = document.getElementById('app');
+
+function renderMenu(){
+  app.innerHTML = `
+    <div class="title">活下来 <span>在</span></div>
+    <div class="sub">选一个世界。没有期限，只有结局。<br>资源会一天比一天少，做错一次选择，可能就是结局。</div>
+    <div class="cards">
+      <div class="card" id="c-water">
+        <div class="art" style="background:linear-gradient(160deg,#1d3a4a,#0d1a22 60%,#0a1216)"></div>
+        <div><div class="name">水资源枯竭</div><div class="tag">可游玩</div></div>
+      </div>
+      <div class="card off"><div class="art" style="background:linear-gradient(160deg,#1a2f3d,#0b1418)"></div>
+        <div><div class="name">海平面上升</div><div class="tag">未开发</div></div></div>
+      <div class="card off"><div class="art" style="background:linear-gradient(160deg,#4a2a1c,#1a0f0a)"></div>
+        <div><div class="name">温度过高</div><div class="tag">未开发</div></div></div>
+      <div class="card off"><div class="art" style="background:linear-gradient(160deg,#26333a,#c8d6dc 130%)"></div>
+        <div><div class="name">温度过低</div><div class="tag">未开发</div></div></div>
+    </div>
+    <div class="foot">目前只开发了：水资源枯竭。<br><span style="color:#4d565c;font-size:11.5px">v1.6 · 2026-11-13</span><br><br>另外三个世界共用同一套骨架，只是把压力换个参数。</div>
+    <button class="ghost" id="mbtn" style="margin-top:16px">♪ 音乐：关</button>
+    <button class="ghost" id="achbtn">🏆 结局图鉴</button>`;
+  document.getElementById('c-water').onclick = ()=>{ init(); M.game(); render(); };
+  const abx = document.getElementById('achbtn');
+  if(abx) abx.onclick = openAch;
+  const mb = document.getElementById('mbtn');
+  mb.onclick = ()=>{
+    if(M.mode){ M.off(); mb.textContent = '♪ 音乐：关'; }
+    else { M.menu(); mb.textContent = '♪ 音乐：开'; }
+  };
+}
+
+function render(){
+  if(S.ended) return renderEnd();
+  if(S.pendingChoice) return renderChoice();
+  const pct = Math.min(100, S.water/40*100);
+  app.innerHTML = `
+    <header>
+      <div class="day">第 ${S.day} 天</div>
+      <div class="weather">${wName()}</div>
+    </header>
+    <div class="water">${S.water}<span class="unit">瓶</span></div>
+    <div class="bar"><i style="width:${pct}%"></i></div>
+    <div class="stats">
+      <span>体力<b>${'●'.repeat(Math.max(0,S.stamina))}${'○'.repeat(Math.max(0,S.maxStamina-S.stamina))}</b></span>
+      <span>电<b>${S.battery}%</b></span>
+      ${S.lock?'<span>🔒<b>'+S.lock+'</b></span>':''}
+      ${S.knife?'<span>🔪<b>'+S.knife+'</b></span>':''}
+      ${S.trust?'<span>信任<b>'+S.trust+'</b></span>':''}
+    </div>
+    ${(S.deltas && S.deltas.length) ? '<div class="delta">'+S.deltas.map(d=>`<span class="${d.k}">${d.t}</span>`).join('')+'</div>' : ''}
+    <div class="narr">${narrate()}</div>
+    <div id="opts"></div>
+    <button class="ghost" id="diary">📓 翻日记（${S.log.length}）</button>
+    <button class="ghost" id="mute">♪ ${M.mode?'音乐开':'音乐关'}</button>
+    <div class="log">${S.log.slice(-4).reverse().map(([d,t])=>`<p><span>${d}</span> ${t}</p>`).join('')}</div>`;
+
+  const box = document.getElementById('opts');
+  const opts = options();
+  if(opts.length >= 5) box.classList.add('two');
+  opts.forEach(o=>{
+    const b = document.createElement('button');
+    b.className = 'opt' + (o.cls ? ' ' + o.cls : '');
+    b.innerHTML = o.label + (o.sub?'<small>'+o.sub+'</small>':'');
+    b.disabled = !!o.disabled;
+    b.onclick = ()=>{
+      if(M.ctx && M.mode) M.tone(720, .11, 'sine', .045);
+      const before = {w:S.water, st:S.stamina, ba:S.battery, lo:S.lock, kn:S.knife, tr:S.trust, dy:S.day};
+      o.act();
+      if(!S.ended) endOfDay();
+      S.deltas = buildDeltas(before);
+      render();
+    };
+    box.appendChild(b);
+  });
+  const diary = document.getElementById('diary');
+  if(diary) diary.onclick = openDiary;
+  const mute = document.getElementById('mute');
+  if(mute) mute.onclick = ()=>{
+    if(M.mode) M.off(); else M.game();
+    mute.textContent = '♪ ' + (M.mode ? '音乐开' : '音乐关');
+  };
+}
+
+/* ══════════════ 成就 ══════════════ */
+const END_ORDER = ['gov','boat','thirst','heli','roaddeath','walk','killed'];
+const END_NAME = {
+  gov:'配水点', boat:'往西去', thirst:'脱水', heli:'直升机',
+  roaddeath:'死在路上', walk:'自己走了', killed:'门开之后'
+};
+const ACH_KEY = 'huoxia.endings.v1';
+function readAch(){
+  try{ return JSON.parse(localStorage.getItem(ACH_KEY) || '[]'); }catch(e){ return []; }
+}
+function unlockEnding(id){
+  const got = readAch();
+  const isNew = got.indexOf(id) < 0;
+  if(isNew){ got.push(id); try{ localStorage.setItem(ACH_KEY, JSON.stringify(got)); }catch(e){} }
+  return { isNew: isNew, count: got.filter(function(x){ return END_ORDER.indexOf(x) >= 0; }).length };
+}
+function openAch(){
+  const got = readAch();
+  const rows = END_ORDER.map(function(id){
+    const on = got.indexOf(id) >= 0;
+    return '<div class="ditem' + (on ? '' : ' dim') + '">' + (on ? '✅ ' + END_NAME[id] : '🔒 ？？？') + '</div>';
+  }).join('');
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+  ov.innerHTML = '<div class="diarybox">'
+    + '<div class="dh"><b>结局图鉴</b><span>' + got.length + ' / ' + END_ORDER.length + '</span></div>'
+    + '<div class="dbody">' + rows + '</div>'
+    + '<div class="df"><button id="aclose">合上</button></div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#aclose').onclick = function(){ ov.remove(); };
+}
+
+/* ══════════════ 结局 ══════════════ */
+const END = {
+  gov:{ k:'结局 · 三十天', t:'配水点',
+    p:'第 30 天早上，楼下小学的操场支起了六个蓝色水罐，塑料的，两米高。\n广播说按楼栋排队，一家一个桶。\n你拎着瓶子下楼。队伍很长，没有人说话，只有桶底磕在水泥地上的声音。\n轮到你的时候，接水的人抬头看了你一眼：\n「还有水吗。」\n「还有几瓶。」\n他点点头，把阀门拧开。' },
+  boat:{ k:'结局 · 跟着走', t:'往西去',
+    p:'货车后厢里坐了七个人，没有窗，只有一条缝。\n出城的时候你们路过一个加油站——加油站被拆得只剩骨架，有人用铁皮围了一圈，门口挂着几块布，布上写着字。\n阿姨的表哥说：那些人不叫人了，叫车队。\n你们没停。\n第二天，你们也把铁皮焊在了车门上。' },
+  thirst:{ k:'结局 · 脱水', t:'你没有撑过去',
+    p:'最后两天，你已经不太能站起来了。\n瓶子是空的，嘴唇裂开，说话像在撕纸。\n你是听着空调外机滴水的声音睡过去的。\n那声音一直没停。' },
+  heli:{ k:'结局 · 三十天', t:'直升机',
+    p:'配水点的队伍是从第 12 天开始排的，一直排到第 30 天。\n你站在阀门旁边，手里拿着一本记名字的本子。\n那天早上，直升机落在小学操场上，螺旋桨把水罐上的灰吹起来。\n先上的是「维持秩序的人」。\n你上去了。往下看的时候，队伍还在排。' },
+  roaddeath:{ k:'结局 · 路上', t:'死在路上',
+    p:'你出城的第三天，水喝完了。\n第四天，你在一个加油站的雨棚下坐着，没再站起来。\n其实你早就知道——上两层楼都要歇一次的人，不该走这条路。\n你不是被谁拦下的。\n是那段路比你想的长。' },
+  walk:{ k:'结局 · 离开', t:'你自己走了',
+    p:'你把能带的塞进包里，盆留在阳台上。\n下楼的时候没有回头。\n不是逃，也不是被赶走——是你算过了，在这个地方再苟延残喘三十天，和走出去三十公里，活下来的概率差不多。\n城市还在那里，只是不再属于一个在这里守了一个月的人。' },
+  killed:{ k:'结局 · 夜', t:'门开之后',
+    p:'门被撞开的时候，你举起了刀。\n对方比你想的快。\n第二天早上，楼道里有人路过，看见门开着，没敢进来。' },
+};
+
+function renderEnd(){
+  const e = END[S.ended] || END.thirst;
+  const ach = unlockEnding(S.ended);
+  const badge = ach.isNew
+    ? '<div class="achnew">🎖 达成第 ' + ach.count + ' / ' + END_ORDER.length + ' 个结局</div>'
+    : '<div class="achnew dim">已解锁 ' + ach.count + ' / ' + END_ORDER.length + ' 个结局</div>';
+  app.innerHTML = `
+    <div class="end">
+      ${badge}
+      <div class="kicker">${e.k}</div>
+      <h1>${e.t}</h1>
+      <p>${e.p}</p>
+      <button id="again">再来一次</button>
+      <div style="margin-top:10px"><button class="ghost" id="diary2" style="border:none;background:none;color:#6d767c">📓 翻日记</button></div>
+    </div>`;
+  document.getElementById('again').onclick = ()=>{ M.menu(); renderMenu(); };
+  const d2 = document.getElementById('diary2');
+  if(d2) d2.onclick = openDiary;
+}
+
+renderMenu();
+</script>
+</body>
+</html>
